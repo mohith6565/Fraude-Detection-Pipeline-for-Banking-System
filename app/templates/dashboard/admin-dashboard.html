@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="/static/site.css">
+    <style>
+        body {
+            background: var(--bg);
+            color: var(--text);
+        }
+        .navbar {
+            background: var(--panel);
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: var(--accent);
+        }
+        .navbar-menu {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .navbar-menu a {
+            color: rgba(229, 238, 247, 0.7);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .navbar-menu a:hover {
+            color: var(--accent);
+        }
+        .admin-badge {
+            background: rgba(94, 234, 212, 0.2);
+            color: var(--accent);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .btn-logout {
+            background: rgba(251, 113, 133, 0.2);
+            color: var(--danger);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .btn-logout:hover {
+            background: rgba(251, 113, 133, 0.3);
+        }
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .page-header {
+            margin-bottom: 3rem;
+        }
+        .page-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .page-header p {
+            color: rgba(229, 238, 247, 0.6);
+            font-size: 1.1rem;
+        }
+        .admin-info {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .admin-info p {
+            color: rgba(229, 238, 247, 0.8);
+            margin: 0.5rem 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .stat-label {
+            color: rgba(229, 238, 247, 0.6);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .stat-card.danger .stat-value {
+            color: var(--danger);
+        }
+        .stat-card.warning .stat-value {
+            color: var(--warn);
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-title .icon {
+            font-size: 1.75rem;
+        }
+        .alerts-table {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 3rem;
+        }
+        .alerts-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .alerts-table th {
+            background: rgba(8, 18, 28, 0.5);
+            padding: 1rem;
+            text-align: left;
+            color: rgba(229, 238, 247, 0.8);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+            font-size: 0.9rem;
+        }
+        .alerts-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.05);
+            font-size: 0.95rem;
+        }
+        .alerts-table tr:hover {
+            background: rgba(94, 234, 212, 0.05);
+        }
+        .severity-low {
+            color: var(--success);
+            font-weight: 500;
+        }
+        .severity-medium {
+            color: var(--warn);
+            font-weight: 500;
+        }
+        .severity-high {
+            color: var(--danger);
+            font-weight: 500;
+        }
+        .severity-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .severity-badge.low {
+            background: rgba(52, 211, 153, 0.2);
+            color: var(--success);
+        }
+        .severity-badge.medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warn);
+        }
+        .severity-badge.high {
+            background: rgba(251, 113, 133, 0.2);
+            color: var(--danger);
+        }
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: var(--bg);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(94, 234, 212, 0.2);
+        }
+        .btn-secondary {
+            background: rgba(94, 234, 212, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+        }
+        .btn-secondary:hover {
+            background: rgba(94, 234, 212, 0.2);
+        }
+        .kpi-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        .kpi-card {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .kpi-title {
+            color: rgba(229, 238, 247, 0.6);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        .kpi-detail {
+            color: rgba(229, 238, 247, 0.5);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>🛡️</span>
+            <span>Fraud Atlas</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="/">Home</a>
+            <a href="/dashboard">User Dashboard</a>
+            <a href="/dashboard/admin-disputes.html">Dispute Queue</a>
+            <span class="admin-badge">👨‍💼 Admin</span>
+            <span style="color: rgba(229, 238, 247, 0.5);">{{ admin_email }}</span>
+            <a href="/logout" class="btn-logout">Sign Out</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <h1>Admin Dashboard</h1>
+            <p>System-wide Fraud Detection Metrics & Control Panel</p>
+        </div>
+
+        <div class="admin-info">
+            <strong>Admin User:</strong> {{ admin_email }}<br>
+            <strong>Role:</strong> System Administrator<br>
+            <strong>Permissions:</strong> Full system access, user management, model configuration
+        </div>
+
+        <h2 class="section-title">
+            <span class="icon">📊</span>
+            Key Performance Indicators
+        </h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Transactions (24h)</div>
+                <div class="stat-value">24,582</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-label">Fraud Detected</div>
+                <div class="stat-value">1,247</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Detection Rate</div>
+                <div class="stat-value">94.2%</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-label">False Positives</div>
+                <div class="stat-value">3.8%</div>
+            </div>
+        </div>
+
+        <div class="kpi-section">
+            <div class="kpi-card">
+                <div class="kpi-title">Model Precision</div>
+                <div class="kpi-value">92.1%</div>
+                <div class="kpi-detail">↑ 2.3% from last week</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Model Recall</div>
+                <div class="kpi-value">88.7%</div>
+                <div class="kpi-detail">↑ 1.1% from last week</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Avg Decision Latency</div>
+                <div class="kpi-value">42ms</div>
+                <div class="kpi-detail">Target: &lt;100ms ✓</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">System Uptime</div>
+                <div class="kpi-value">99.98%</div>
+                <div class="kpi-detail">Last downtime: 5 days ago</div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="downloadReport()">Download Report</button>
+            <button class="btn btn-secondary" onclick="configureModel()">Configure Model</button>
+            <button class="btn btn-secondary" onclick="manageUsers()">Manage Users</button>
+            <button class="btn btn-primary" onclick="injectAttackBurst()">Inject Attack Burst</button>
+        </div>
+
+        <h2 class="section-title">
+            <span class="icon">⚠️</span>
+            Recent Fraud Alerts
+        </h2>
+        <div class="alerts-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Alert ID</th>
+                        <th>Fraud Type</th>
+                        <th>User Email</th>
+                        <th>Severity</th>
+                        <th>Detection Time</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in alerts %}
+                    <tr>
+                        <td>{{ alert.id }}</td>
+                        <td>{{ alert.type }}</td>
+                        <td>{{ alert.user_email }}</td>
+                        <td>
+                            <span class="severity-badge {% if alert.severity == 'Low' %}low{% elif alert.severity == 'Medium' %}medium{% else %}high{% endif %}">
+                                {{ alert.severity }}
+                            </span>
+                        </td>
+                        <td>{{ alert.timestamp }}</td>
+                        <td style="color: rgba(229, 238, 247, 0.6); max-width: 300px;">{{ alert.details }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="section-title">
+            <span class="icon">⚙️</span>
+            System Controls
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            <div style="background: var(--panel); border: 1px solid rgba(94, 234, 212, 0.1); border-radius: 12px; padding: 1.5rem;">
+                <h3 style="color: var(--accent); margin-bottom: 1rem;">Fraud Threshold</h3>
+                <p style="color: rgba(229, 238, 247, 0.7); margin-bottom: 1rem;">Current global threshold: 75</p>
+                <input type="range" min="0" max="100" value="75" style="width: 100%; accent-color: var(--accent); margin-bottom: 1rem;">
+                <button class="btn btn-primary" style="width: 100%;" onclick="updateThreshold()">Update Threshold</button>
+            </div>
+
+            <div style="background: var(--panel); border: 1px solid rgba(94, 234, 212, 0.1); border-radius: 12px; padding: 1.5rem;">
+                <h3 style="color: var(--accent); margin-bottom: 1rem;">Model Retraining</h3>
+                <p style="color: rgba(229, 238, 247, 0.7); margin-bottom: 1rem;">Last retrain: 2 days ago</p>
+                <button class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem;">View Training Logs</button>
+                <button class="btn btn-primary" style="width: 100%;" onclick="triggerRetrain()">Trigger Retraining</button>
+            </div>
+
+            <div style="background: var(--panel); border: 1px solid rgba(94, 234, 212, 0.1); border-radius: 12px; padding: 1.5rem;">
+                <h3 style="color: var(--accent); margin-bottom: 1rem;">Data Export</h3>
+                <p style="color: rgba(229, 238, 247, 0.7); margin-bottom: 1rem;">Export system data for analysis</p>
+                <button class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem;" onclick="exportTransactions()">Export Transactions</button>
+                <button class="btn btn-secondary" style="width: 100%;" onclick="exportAlerts()">Export Alerts</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function downloadReport() {
+            alert('Report generation started. Download will begin shortly.');
+        }
+
+        function configureModel() {
+            alert('Model configuration panel would open in a production system.');
+        }
+
+        function manageUsers() {
+            alert('User management panel would open in a production system.');
+        }
+
+        function updateThreshold() {
+            alert('Fraud detection threshold updated successfully.');
+        }
+
+        function triggerRetrain() {
+            alert('Model retraining has been triggered. This may take 30-60 minutes.');
+        }
+
+        function exportTransactions() {
+            alert('Transactions export initiated. Check your downloads folder.');
+        }
+
+        function exportAlerts() {
+            alert('Alerts export initiated. Check your downloads folder.');
+        }
+
+        function injectAttackBurst() {
+            fetch('/api/admin/inject-attack', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ count: 6 })
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data && data.success) {
+                    alert('Attack burst injected across connected clients.');
+                } else {
+                    alert('Failed to inject attack burst.');
+                }
+            })
+            .catch(() => {
+                alert('Network error while sending attack burst.');
+            });
+        }
+    </script>
+</body>
+</html>

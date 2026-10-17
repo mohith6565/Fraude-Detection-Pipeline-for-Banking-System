@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="/static/site.css">
+    <style>
+        body {
+            background: var(--bg);
+            color: var(--text);
+        }
+        .navbar {
+            background: var(--panel);
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: var(--accent);
+        }
+        .navbar-menu {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .navbar-menu a {
+            color: rgba(229, 238, 247, 0.7);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .navbar-menu a:hover {
+            color: var(--accent);
+        }
+        .btn-logout {
+            background: rgba(251, 113, 133, 0.2);
+            color: var(--danger);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .btn-logout:hover {
+            background: rgba(251, 113, 133, 0.3);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .page-header p {
+            color: rgba(229, 238, 247, 0.6);
+        }
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+        }
+        .tab {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            color: rgba(229, 238, 247, 0.6);
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .tab:hover {
+            color: var(--accent);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .dispute-card {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .dispute-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .dispute-id {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warn);
+        }
+        .status-reviewing {
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent-2);
+        }
+        .status-resolved {
+            background: rgba(52, 211, 153, 0.2);
+            color: var(--success);
+        }
+        .status-closed {
+            background: rgba(107, 114, 128, 0.2);
+            color: rgba(229, 238, 247, 0.7);
+        }
+        .dispute-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+            color: rgba(229, 238, 247, 0.8);
+        }
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .detail-label {
+            color: rgba(229, 238, 247, 0.5);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        .detail-value {
+            font-weight: 500;
+        }
+        .dispute-description {
+            background: rgba(8, 18, 28, 0.5);
+            border-left: 2px solid var(--accent);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            color: rgba(229, 238, 247, 0.8);
+        }
+        .new-dispute-form {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            color: var(--text);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(8, 18, 28, 0.5);
+            border: 1px solid rgba(94, 234, 212, 0.25);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.1);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        .button-group {
+            display: flex;
+            gap: 1rem;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: var(--bg);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(94, 234, 212, 0.2);
+        }
+        .btn-secondary {
+            background: rgba(94, 234, 212, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+        }
+        .btn-secondary:hover {
+            background: rgba(94, 234, 212, 0.2);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: rgba(229, 238, 247, 0.6);
+        }
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+        .alert.success {
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--success);
+            border-left: 3px solid var(--success);
+        }
+        .alert.error {
+            background: rgba(251, 113, 133, 0.15);
+            color: var(--danger);
+            border-left: 3px solid var(--danger);
+        }
+        .alert.show {
+            display: block;
+        }
+        .resolution-text {
+            background: rgba(8, 18, 28, 0.5);
+            border-left: 2px solid var(--success);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            color: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>🔔</span>
+            <span>Fraud Atlas</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/disputes">Disputes</a>
+            <a href="/settings">Settings</a>
+            <a href="/logout" class="btn-logout">Sign Out</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Dispute Management</h1>
+            <p>Report and track transaction disputes</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(event, 'my-disputes')">My Disputes</button>
+            <button class="tab" onclick="switchTab(event, 'new-dispute')">File New Dispute</button>
+        </div>
+
+        <!-- My Disputes Tab -->
+        <div id="my-disputes" class="tab-content active">
+            <div class="alert success" id="successAlert"></div>
+            
+            <div id="disputesList">
+                {% if disputes %}
+                    {% for dispute in disputes %}
+                        <div class="dispute-card">
+                            <div class="dispute-header">
+                                <div class="dispute-id">{{ dispute.ticket_id }}</div>
+                                <span class="status-badge status-{{ dispute.status | lower }}">{{ dispute.status }}</span>
+                            </div>
+                            <div class="dispute-details">
+                                <div class="detail-item">
+                                    <div class="detail-label">Transaction ID</div>
+                                    <div class="detail-value">{{ dispute.transaction_id }}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Amount</div>
+                                    <div class="detail-value">{{ dispute.amount }}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Merchant</div>
+                                    <div class="detail-value">{{ dispute.merchant }}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Filed</div>
+                                    <div class="detail-value">{{ dispute.timestamp }}</div>
+                                </div>
+                            </div>
+                            <div class="dispute-description">
+                                <strong>Reason:</strong> {{ dispute.reason }}<br><br>
+                                <strong>Description:</strong> {{ dispute.description }}
+                            </div>
+                            {% if dispute.resolution %}
+                            <div class="resolution-text">
+                                <strong>Resolution:</strong> {{ dispute.resolution }}
+                            </div>
+                            {% else %}
+                            <button class="btn btn-secondary" onclick="updateDispute('{{ dispute.ticket_id }}')">Add Update</button>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <h3>No Disputes</h3>
+                        <p>You haven't filed any disputes yet. If you need to report a transaction, use the "File New Dispute" tab.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-state-icon">📋</div>
+                <h3>No Disputes</h3>
+                <p>You haven't filed any disputes yet. If you need to report a transaction, use the "File New Dispute" tab.</p>
+            </div>
+        </div>
+
+        <!-- New Dispute Tab -->
+        <div id="new-dispute" class="tab-content">
+            <div class="alert success" id="disputeSuccess">Dispute filed successfully! You can track it in the "My Disputes" tab.</div>
+            <div class="alert error" id="disputeError"></div>
+
+            <div class="new-dispute-form">
+                <h2 style="margin-bottom: 1.5rem;">File a New Dispute</h2>
+                <form id="disputeForm">
+                    <div class="form-group">
+                        <label for="transactionId">Transaction ID</label>
+                        <select id="transactionId" name="transactionId" required>
+                            <option value="">Select a transaction...</option>
+                            {% for tx in transactions %}
+                            <option value="{{ tx.id }}">{{ tx.id }} - {{ tx.merchant }} - {{ tx.amount_formatted }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reason">Dispute Reason</label>
+                        <select id="reason" name="reason" required>
+                            <option value="">Select a reason...</option>
+                            <option value="unauthorized">Unauthorized Transaction</option>
+                            <option value="duplicate">Duplicate Charge</option>
+                            <option value="amount">Incorrect Amount</option>
+                            <option value="not_received">Service Not Received</option>
+                            <option value="defective">Defective Product</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" placeholder="Please provide detailed information about this dispute..." required></textarea>
+                        <small style="color: rgba(229, 238, 247, 0.5);">Include relevant details to help us investigate faster.</small>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">File Dispute</button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(event, tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        document.getElementById('disputeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const response = await fetch('/api/file-dispute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        transaction_id: document.getElementById('transactionId').value,
+                        reason: document.getElementById('reason').value,
+                        description: document.getElementById('description').value
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('disputeSuccess').classList.add('show');
+                    document.getElementById('disputeForm').reset();
+                    // Refresh disputes list
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    document.getElementById('disputeError').textContent = data.error || 'Failed to file dispute';
+                    document.getElementById('disputeError').classList.add('show');
+                }
+            } catch (error) {
+                document.getElementById('disputeError').textContent = 'An error occurred';
+                document.getElementById('disputeError').classList.add('show');
+            }
+        });
+
+        function updateDispute(ticketId) {
+            alert('Dispute update modal would appear here. In production, this opens a form to add case notes.');
+        }
+    </script>
+</body>
+</html>

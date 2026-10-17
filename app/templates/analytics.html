@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="/static/site.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            background: var(--bg);
+            color: var(--text);
+        }
+        .navbar {
+            background: var(--panel);
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: var(--accent);
+        }
+        .navbar-menu {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .navbar-menu a {
+            color: rgba(229, 238, 247, 0.7);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .navbar-menu a:hover {
+            color: var(--accent);
+        }
+        .btn-logout {
+            background: rgba(251, 113, 133, 0.2);
+            color: var(--danger);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .btn-logout:hover {
+            background: rgba(251, 113, 133, 0.3);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .page-header p {
+            color: rgba(229, 238, 247, 0.6);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .stat-label {
+            color: rgba(229, 238, 247, 0.6);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .stat-trend {
+            color: var(--success);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+        .chart-container {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            height: 400px;
+        }
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+        .filters {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filters select, .filters input {
+            padding: 0.5rem;
+            background: rgba(8, 18, 28, 0.5);
+            border: 1px solid rgba(94, 234, 212, 0.25);
+            border-radius: 6px;
+            color: var(--text);
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: var(--bg);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(94, 234, 212, 0.15);
+        }
+        .heat-map {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+        }
+        .heat-cell {
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            border: 1px solid rgba(94, 234, 212, 0.1);
+        }
+        .heat-low {
+            background: rgba(52, 211, 153, 0.2);
+            color: var(--success);
+        }
+        .heat-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warn);
+        }
+        .heat-high {
+            background: rgba(251, 113, 133, 0.2);
+            color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>📊</span>
+            <span>Fraud Atlas</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/disputes">Disputes</a>
+            <a href="/settings">Settings</a>
+            <a href="/logout" class="btn-logout">Sign Out</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Analytics & Insights</h1>
+            <p>Real-time fraud detection metrics and trends</p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Detection Rate (24h)</div>
+                <div class="stat-value">{{ detection_rate }}%</div>
+                <div class="stat-trend">Real-time model detection</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Response Time</div>
+                <div class="stat-value">{{ avg_latency_ms }}ms</div>
+                <div class="stat-trend">Within SLA (100ms)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">False Positive Rate</div>
+                <div class="stat-value">{{ false_positive_rate }}%</div>
+                <div class="stat-trend">Estimated production drift</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Transactions Blocked</div>
+                <div class="stat-value">{{ fraud_detected }}</div>
+                <div class="stat-trend">Flagged by the fraud engine</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="section-title">Trends & Distribution</div>
+        <div class="grid-2">
+            <div class="chart-container">
+                <div class="chart-title">Fraud Detection Rate (7-day trend)</div>
+                <canvas id="detectionRateChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Fraud By Type</div>
+                <canvas id="fraudTypeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Geographic Heatmap -->
+        <div class="section-title">Geographic Risk Distribution</div>
+        <div class="filters">
+            <label>Time Period: </label>
+            <select onchange="updateAnalytics()">
+                <option value="24h">Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+            </select>
+        </div>
+        <div class="heat-map">
+            <div class="heat-cell heat-high">
+                <strong>New York</strong><br>847 alerts
+            </div>
+            <div class="heat-cell heat-high">
+                <strong>California</strong><br>612 alerts
+            </div>
+            <div class="heat-cell heat-medium">
+                <strong>Texas</strong><br>298 alerts
+            </div>
+            <div class="heat-cell heat-medium">
+                <strong>Florida</strong><br>187 alerts
+            </div>
+            <div class="heat-cell heat-low">
+                <strong>Illinois</strong><br>92 alerts
+            </div>
+            <div class="heat-cell heat-low">
+                <strong>Other States</strong><br>312 alerts
+            </div>
+        </div>
+
+        <!-- Additional Metrics -->
+        <div class="section-title" style="margin-top: 3rem;">Model Performance</div>
+        <div class="grid-2">
+            <div class="stat-card">
+                <div class="stat-label">Precision</div>
+                <div class="stat-value">{{ model_precision }}%</div>
+                <div class="stat-trend">Correctly identified fraud</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Recall</div>
+                <div class="stat-value">{{ model_recall }}%</div>
+                <div class="stat-trend">Caught of actual fraud</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">F1 Score</div>
+                <div class="stat-value">{{ (model_precision * model_recall / (model_precision + model_recall) * 2) | round(3) }}</div>
+                <div class="stat-trend">Model balance metric</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">System Uptime</div>
+                <div class="stat-value">{{ uptime }}</div>
+                <div class="stat-trend">Avg 24/7 availability</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Detection Rate Chart
+        const detectionCtx = document.getElementById('detectionRateChart').getContext('2d');
+        new Chart(detectionCtx, {
+            type: 'line',
+            data: {
+                labels: {{ trend_labels | tojson | safe }},
+                datasets: [{
+                    label: 'Detection Rate (%)',
+                    data: {{ trend_rates | tojson | safe }},
+                    borderColor: 'rgba(94, 234, 212, 0.8)',
+                    backgroundColor: 'rgba(94, 234, 212, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(94, 234, 212, 0.1)' },
+                        ticks: { color: 'rgba(229, 238, 247, 0.6)' }
+                    },
+                    x: { grid: { color: 'rgba(94, 234, 212, 0.1)' }, ticks: { color: 'rgba(229, 238, 247, 0.6)' } }
+                }
+            }
+        });
+
+        // Fraud Type Chart
+        const fraudTypeCtx = document.getElementById('fraudTypeChart').getContext('2d');
+        new Chart(fraudTypeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ fraud_type_labels | tojson | safe }},
+                datasets: [{
+                    data: {{ fraud_type_counts | tojson | safe }},
+                    backgroundColor: [
+                        'rgba(251, 113, 133, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(94, 234, 212, 0.8)',
+                        'rgba(56, 189, 248, 0.8)',
+                        'rgba(168, 85, 247, 0.8)'
+                    ],
+                    borderColor: 'var(--bg)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: 'rgba(229, 238, 247, 0.8)' } } }
+            }
+        });
+
+        function updateAnalytics() {
+            alert('Filters applied! This would update the charts with new data.');
+        }
+    </script>
+</body>
+</html>

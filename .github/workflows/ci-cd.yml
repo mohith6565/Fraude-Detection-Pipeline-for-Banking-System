@@ -1,0 +1,305 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt || true
+      - name: Lint (ruff + black)
+        run: |
+          pip install ruff black
+          ruff check .
+          black --check .
+      - name: Run tests
+        run: |
+          pip install pytest
+          pytest -q
+
+  build_and_push:
+    name: Build & Push Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push to Docker Hub
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/fraud-atlas:latest
+      - name: Push to GitHub Container Registry
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/fraud-atlas:latest
+
+  deploy_k8s:
+    name: Deploy to Kubernetes
+    needs: build_and_push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.27.0'
+      - name: Configure kubeconfig
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > kubeconfig
+          mkdir -p ~/.kube
+          mv kubeconfig ~/.kube/config
+      - name: Deploy manifests
+        env:
+          KUBECONFIG: ${{ github.workspace }}/.kube/config
+        run: |
+          kubectl set image deployment/fraud-atlas-web web=${{ secrets.DOCKERHUB_USERNAME }}/fraud-atlas:latest --record || true
+          kubectl apply -f k8s/
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/fraud-detection
+  ML_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/fraud-detection-ml
+  WORKER_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/fraud-detection-worker
+
+jobs:
+  # ============ Code Quality ============
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint Code
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run Ruff (linting)
+        run: ruff check . --exclude venv,.git,.github
+
+      - name: Run Black (formatting check)
+        run: black --check . --exclude venv
+
+  # ============ Unit Tests ============
+  test:
+    runs-on: ubuntu-latest
+    name: Run Tests
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fraud_user
+          POSTGRES_PASSWORD: fraud_password
+          POSTGRES_DB: fraud_detection_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run pytest
+        env:
+          DATABASE_URL: postgresql://fraud_user:fraud_password@localhost:5432/fraud_detection_test
+        run: pytest tests/ -v --cov=app --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  # ============ Build Docker Images ============
+  build:
+    runs-on: ubuntu-latest
+    name: Build Docker Images
+    needs: [lint, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push main application
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push ML service
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.ml-service
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.ML_IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.ML_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push worker
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.worker
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.WORKER_IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.WORKER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============ Security Scanning ============
+  security:
+    runs-on: ubuntu-latest
+    name: Security Checks
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ============ Deploy to Staging ============
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy to Staging
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          STAGING_SERVER: ${{ secrets.STAGING_SERVER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $STAGING_SERVER >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key deploy@$STAGING_SERVER "cd /app && docker-compose pull && docker-compose up -d"
+
+      - name: Run smoke tests
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+        run: |
+          echo "Running smoke tests against $STAGING_URL"
+          # Add smoke test commands here
+          curl -f $STAGING_URL/health || exit 1
+
+  # ============ Notify Results ============
+  notify:
+    runs-on: ubuntu-latest
+    name: Notify Results
+    needs: [lint, test, build, security]
+    if: always()
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Fraud Detection Pipeline - CI/CD Results",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Fraud Detection Pipeline* - ${{ job.status }}\n*Commit*: ${{ github.sha }}\n*Branch*: ${{ github.ref }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()

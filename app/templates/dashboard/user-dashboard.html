@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="/static/site.css">
+    <style>
+        body {
+            background: var(--bg);
+            color: var(--text);
+        }
+        .navbar {
+            background: var(--panel);
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: var(--accent);
+        }
+        .navbar-menu {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .navbar-menu a {
+            color: rgba(229, 238, 247, 0.7);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .navbar-menu a:hover {
+            color: var(--accent);
+        }
+        .btn-logout {
+            background: rgba(251, 113, 133, 0.2);
+            color: var(--danger);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .btn-logout:hover {
+            background: rgba(251, 113, 133, 0.3);
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .page-header {
+            margin-bottom: 3rem;
+        }
+        .page-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .page-header p {
+            color: rgba(229, 238, 247, 0.6);
+            font-size: 1.1rem;
+        }
+        .user-info {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .user-info p {
+            color: rgba(229, 238, 247, 0.8);
+            margin: 0.5rem 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .stat-label {
+            color: rgba(229, 238, 247, 0.6);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+        .transactions-table {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .transactions-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .transactions-table th {
+            background: rgba(8, 18, 28, 0.5);
+            padding: 1rem;
+            text-align: left;
+            color: rgba(229, 238, 247, 0.8);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+            font-size: 0.9rem;
+        }
+        .transactions-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.05);
+            font-size: 0.95rem;
+        }
+        .transactions-table tr:hover {
+            background: rgba(94, 234, 212, 0.05);
+        }
+        .status-approved {
+            color: var(--success);
+            font-weight: 500;
+        }
+        .status-flagged {
+            color: var(--danger);
+            font-weight: 500;
+        }
+        .score-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .score-low {
+            background: rgba(52, 211, 153, 0.2);
+            color: var(--success);
+        }
+        .score-high {
+            background: rgba(251, 113, 133, 0.2);
+            color: var(--danger);
+        }
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: var(--bg);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(94, 234, 212, 0.2);
+        }
+        .btn-secondary {
+            background: rgba(94, 234, 212, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+        }
+        .btn-secondary:hover {
+            background: rgba(94, 234, 212, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>🛡️</span>
+            <span>Fraud Atlas</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/disputes">Disputes</a>
+            <a href="/settings">Settings</a>
+            <span style="color: rgba(229, 238, 247, 0.5);">{{ user_email }}</span>
+            <a href="/logout" class="btn-logout">Sign Out</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <p>Welcome to your Fraud Detection Dashboard</p>
+        </div>
+
+        <div class="user-info">
+            <strong>Signed in as:</strong> {{ user_email }}
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Transactions</div>
+                <div class="stat-value">{{ transactions|length }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Flagged</div>
+                <div class="stat-value" id="flaggedCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Fraud Score</div>
+                <div class="stat-value" id="avgScore">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Approval Rate</div>
+                <div class="stat-value" id="approvalRate">0%</div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="exportData()">Export CSV</button>
+            <button class="btn btn-secondary" onclick="refreshData()">Refresh</button>
+        </div>
+
+        <h2 class="section-title">Recent Transactions</h2>
+        <div class="transactions-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>Merchant</th>
+                        <th>Location</th>
+                        <th>Amount</th>
+                        <th>Fraud Score</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr>
+                        <td>{{ txn.id }}</td>
+                        <td>{{ txn.merchant }}</td>
+                        <td>{{ txn.location }}</td>
+                        <td>{{ txn.amount_formatted }}</td>
+                        <td>
+                            <span class="score-badge {% if txn.fraud_score > 60 %}score-high{% else %}score-low{% endif %}">
+                                {{ txn.fraud_score }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-{% if txn.status == 'Approved' %}approved{% else %}flagged{% endif %}">
+                                {{ txn.status }}
+                            </span>
+                        </td>
+                        <td>{{ txn.timestamp }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function updateStats() {
+            const rows = document.querySelectorAll('.transactions-table tbody tr');
+            const flagged = Array.from(rows).filter(row => {
+                const status = row.cells[5].textContent.trim();
+                return status === 'Flagged';
+            }).length;
+            
+            const scores = Array.from(rows).map(row => {
+                const scoreText = row.cells[4].textContent.trim();
+                return parseInt(scoreText.match(/\d+/)[0]);
+            });
+            
+            const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+            const approvalRate = Math.round(((rows.length - flagged) / rows.length) * 100);
+            
+            document.getElementById('flaggedCount').textContent = flagged;
+            document.getElementById('avgScore').textContent = avgScore;
+            document.getElementById('approvalRate').textContent = approvalRate + '%';
+        }
+        
+        function exportData() {
+            const table = document.querySelector('.transactions-table table');
+            let csv = 'Transaction ID,Merchant,Location,Amount,Fraud Score,Status,Time\n';
+            
+            document.querySelectorAll('.transactions-table tbody tr').forEach(row => {
+                const cells = Array.from(row.cells).map(cell => {
+                    let text = cell.textContent.trim();
+                    // Remove extra whitespace and numbers from score cell
+                    if (cell.cellIndex === 4) {
+                        text = text.match(/\d+/)[0];
+                    }
+                    return `"${text}"`;
+                });
+                csv += cells.join(',') + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'transactions.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function refreshData() {
+            location.reload();
+        }
+        
+        // Update stats on page load
+        updateStats();
+    </script>
+</body>
+</html>

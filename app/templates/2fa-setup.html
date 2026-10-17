@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="/static/site.css">
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgba(94, 234, 212, 0.1), rgba(56, 189, 248, 0.1));
+        }
+        .auth-card {
+            background: var(--panel);
+            border: 1px solid rgba(94, 234, 212, 0.2);
+            border-radius: 12px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .auth-card h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        .auth-card .subtitle {
+            color: rgba(229, 238, 247, 0.6);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            color: var(--text);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(8, 18, 28, 0.5);
+            border: 1px solid rgba(94, 234, 212, 0.25);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+            text-align: center;
+            letter-spacing: 2px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.1);
+        }
+        .qr-section {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(94, 234, 212, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .qr-image {
+            max-width: 200px;
+            margin: 1rem auto;
+            border-radius: 8px;
+        }
+        .secret-key {
+            background: rgba(8, 18, 28, 0.8);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+            word-break: break-all;
+            color: var(--accent);
+        }
+        .backup-codes {
+            background: rgba(251, 113, 133, 0.1);
+            border: 1px solid rgba(251, 113, 133, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .backup-code {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: rgba(229, 238, 247, 0.8);
+            line-height: 1.8;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 1rem;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(94, 234, 212, 0.2);
+        }
+        .btn-secondary {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(94, 234, 212, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover {
+            background: rgba(94, 234, 212, 0.2);
+        }
+        .info-box {
+            background: rgba(94, 234, 212, 0.1);
+            border-left: 3px solid var(--accent);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            color: rgba(229, 238, 247, 0.8);
+            font-size: 0.95rem;
+        }
+        .error-message {
+            background: rgba(251, 113, 133, 0.1);
+            color: #fca5ac;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid var(--danger);
+            display: none;
+        }
+        .step-indicator {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            background: rgba(94, 234, 212, 0.1);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: rgba(229, 238, 247, 0.6);
+        }
+        .step.active {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: var(--bg);
+            font-weight: 600;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            color: var(--accent);
+        }
+        .brand-icon {
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="brand">
+                <span class="brand-icon">🛡️</span>
+                <span style="font-weight: 600;">Fraud Atlas</span>
+            </div>
+
+            {% if twofa_enabled %}
+            <div class="step-content" style="display: block;">
+                <h1>Two-Factor Authentication is Active</h1>
+                <p class="subtitle">Your account is already protected with 2FA.</p>
+
+                <div class="info-box" style="background: rgba(52, 211, 153, 0.1); border-left-color: var(--success);">
+                    Two-factor authentication is currently enabled. Use your authenticator app to sign in securely.
+                </div>
+
+                <button type="button" class="btn-submit" onclick="disable2FA()">Disable 2FA</button>
+                {% if backup_codes %}
+                <div class="backup-codes" style="margin-top: 1rem;">
+                    <div class="backup-code"><strong>Backup codes:</strong></div>
+                    {% for code in backup_codes %}
+                    <div class="backup-code">{{ code }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div id="step1" class="step-content">
+                <h1>Enable Two-Factor Authentication</h1>
+                <p class="subtitle">Add an extra layer of security to your account</p>
+
+                <div class="info-box">
+                    Two-factor authentication requires you to enter a verification code from your authenticator app in addition to your password.
+                </div>
+
+                <div class="qr-section">
+                    <p style="color: rgba(229, 238, 247, 0.8); margin-bottom: 1rem;">
+                        <strong>Step 1: Scan QR Code</strong>
+                    </p>
+                    <img src="{{ qr_image }}" alt="2FA QR Code" class="qr-image">
+                    <p style="color: rgba(229, 238, 247, 0.6); font-size: 0.9rem; margin-bottom: 0.5rem;">Or enter this key manually:</p>
+                    <div class="secret-key">{{ secret_key }}</div>
+                    <p style="color: rgba(229, 238, 247, 0.5); font-size: 0.85rem;">
+                        Use Google Authenticator, Microsoft Authenticator, or Authy
+                    </p>
+                </div>
+
+                <button type="button" class="btn-submit" onclick="showStep('step2')">I've Scanned the Code</button>
+            </div>
+
+            <div id="step2" class="step-content" style="display: none;">
+                <h1>Verify Code</h1>
+                <p class="subtitle">Enter the 6-digit code from your authenticator app</p>
+
+                <div class="error-message" id="errorMessage"></div>
+
+                <form id="verifyForm">
+                    <div class="form-group">
+                        <label for="code">Verification Code</label>
+                        <input type="text" id="code" name="code" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Verify Code</button>
+                </form>
+
+                <button type="button" class="btn-secondary" onclick="showStep('step1')">Back</button>
+            </div>
+
+            <div id="step3" class="step-content" style="display: none;">
+                <h1>Save Backup Codes</h1>
+                <p class="subtitle">Keep these codes in a safe place</p>
+
+                <div class="info-box">
+                    These backup codes can be used to access your account if you lose access to your authenticator app. Each code can only be used once.
+                </div>
+
+                <div class="backup-codes" id="backupCodesContainer"></div>
+
+                <button type="button" class="btn-secondary" style="margin-bottom: 1rem;" onclick="downloadCodes()">Download Codes</button>
+                <button type="button" class="btn-submit" onclick="completeSetup()">I've Saved My Codes</button>
+            </div>
+            {% endif %}
+
+            <div id="step4" class="step-content" style="display: none;">
+                <h1 style="color: var(--success);">✓ 2FA Enabled</h1>
+                <p class="subtitle">Your account is now more secure</p>
+
+                <div class="info-box" style="background: rgba(52, 211, 153, 0.1); border-left-color: var(--success);">
+                    Two-factor authentication is now active on your account. You'll need to enter a verification code each time you sign in from a new device.
+                </div>
+
+                <button type="button" class="btn-submit" onclick="window.location.href='/settings'">Return to Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showStep(stepId) {
+            document.querySelectorAll('.step-content').forEach(el => el.style.display = 'none');
+            document.getElementById(stepId).style.display = 'block';
+        }
+
+        document.getElementById('verifyForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('code').value;
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/auth/2fa/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: code })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const backupCodes = data.backup_codes || [];
+                    const container = document.getElementById('backupCodesContainer');
+                    container.innerHTML = backupCodes.map(code => `<div class="backup-code">${code}</div>`).join('');
+                    showStep('step3');
+                } else {
+                    errorMessage.textContent = data.error || 'Invalid code. Please try again.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Verification failed. Please try again.';
+                errorMessage.style.display = 'block';
+            }
+        });
+
+        function downloadCodes() {
+            const codes = Array.from(document.querySelectorAll('.backup-code')).map(el => el.textContent).join('\n');
+            const fileContent = `Fraud Atlas 2FA Backup Codes\nGenerated: ${new Date().toISOString()}\n\n${codes}\n\nStore this file securely!`;
+            const blob = new Blob([fileContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '2fa-backup-codes.txt';
+            a.click();
+        }
+
+        function completeSetup() {
+            window.location.href = '/settings';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Admin - Disputes</title>
+    <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">Fraud Atlas</div>
+        <div class="navbar-menu">
+            <a href="/admin">Admin</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/logout">Sign Out</a>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>Dispute Queue</h1>
+        <div id="list">
+            Loading...
+        </div>
+    </div>
+
+    <script>
+    async function load() {
+        const res = await fetch('/api/admin/disputes');
+        const data = await res.json();
+        const list = document.getElementById('list');
+        if (!data || !data.disputes || !data.disputes.length) {
+            list.innerHTML = '<p>No disputes'</p>;
+            return;
+        }
+        list.innerHTML = data.disputes.map(d => `
+            <div style="padding:12px; border:1px solid #222; margin-bottom:8px;">
+                <strong>${d.ticket_id}</strong> - ${d.transaction_id} - ${d.amount}<br>
+                <em>${d.reason}</em><p>${d.description}</p>
+                <button onclick="resolve('${d.ticket_id}')">Resolve</button>
+            </div>
+        `).join('');
+    }
+
+    async function resolve(ticketId) {
+        const res = await fetch('/api/admin/resolve-dispute', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ticket_id: ticketId, resolution: 'Resolved by admin'})
+        });
+        const data = await res.json();
+        if (data.success) load(); else alert('Failed');
+    }
+
+    load();
+    </script>
+</body>
+</html>

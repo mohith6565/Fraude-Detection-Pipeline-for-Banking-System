@@ -1,0 +1,1 @@
+"""Fraud Atlas application package."""

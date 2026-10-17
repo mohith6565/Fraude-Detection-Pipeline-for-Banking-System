@@ -1,0 +1,216 @@
+version: '3.8'
+
+services:
+  # ============ PostgreSQL Database ============
+  postgres:
+    image: postgres:16-alpine
+    container_name: fraud-detection-postgres
+    environment:
+      POSTGRES_USER: fraud_user
+      POSTGRES_PASSWORD: fraud_password
+      POSTGRES_DB: fraud_detection
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fraud_user -d fraud_detection"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fraud-detection-network
+
+  # ============ Redis Cache ============
+  redis:
+    image: redis:7-alpine
+    container_name: fraud-detection-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fraud-detection-network
+
+  # ============ Apache Kafka (with Zookeeper) ============
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: fraud-detection-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - fraud-detection-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: fraud-detection-kafka
+    depends_on:
+      zookeeper:
+        condition: service_started
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fraud-detection-network
+
+  # ============ ML Model Serving Microservice ============
+  ml-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.ml-service
+    container_name: fraud-detection-ml-service
+    ports:
+      - "8001:8001"
+    environment:
+      MODEL_PATH: /models/fraud_detector_xgboost.pkl
+      SCALER_PATH: /models/feature_scaler.pkl
+      FEATURE_COLUMNS_PATH: /models/feature_columns.pkl
+    volumes:
+      - ./models:/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fraud-detection-network
+    depends_on:
+      - postgres
+      - redis
+
+  # ============ Main FastAPI Application ============
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fraud-detection-app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://fraud_user:fraud_password@postgres:5432/fraud_detection
+      REDIS_URL: redis://redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      ML_SERVICE_URL: http://ml-service:8001
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fraud-detection-network
+
+  # ============ Kafka Consumer Workers ============
+  worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: fraud-detection-worker-1
+    environment:
+      DATABASE_URL: postgresql://fraud_user:fraud_password@postgres:5432/fraud_detection
+      REDIS_URL: redis://redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      ML_SERVICE_URL: http://ml-service:8001
+      WORKER_ID: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - fraud-detection-network
+    restart: on-failure
+
+  worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: fraud-detection-worker-2
+    environment:
+      DATABASE_URL: postgresql://fraud_user:fraud_password@postgres:5432/fraud_detection
+      REDIS_URL: redis://redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      ML_SERVICE_URL: http://ml-service:8001
+      WORKER_ID: "2"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - fraud-detection-network
+    restart: on-failure
+
+  # ============ Prometheus Monitoring ============
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fraud-detection-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    networks:
+      - fraud-detection-network
+
+  # ============ Grafana Dashboards ============
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fraud-detection-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - fraud-detection-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  fraud-detection-network:
+    driver: bridge

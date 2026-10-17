@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Real-Time Fraud Detection Simulator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071019;
+      --panel: rgba(8, 18, 28, 0.82);
+      --panel-strong: rgba(10, 24, 38, 0.96);
+      --line: rgba(148, 163, 184, 0.16);
+      --text: #e5eef7;
+      --muted: #8ea2b8;
+      --accent: #5eead4;
+      --accent-2: #38bdf8;
+      --warn: #f59e0b;
+      --danger: #fb7185;
+      --success: #34d399;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(94, 234, 212, 0.10), transparent 24%),
+        linear-gradient(180deg, #040a10 0%, #071019 48%, #050a0f 100%);
+      color: var(--text);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.25;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.7), transparent 90%);
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px 20px 34px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .headline, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .headline {
+      padding: 26px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .headline::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -50% auto;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(94, 234, 212, 0.16), transparent 68%);
+      filter: blur(8px);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: 1px solid rgba(94, 234, 212, 0.22);
+      border-radius: 999px;
+      color: var(--accent);
+      background: rgba(94, 234, 212, 0.06);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(2rem, 4vw, 3.8rem);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+      max-width: 11ch;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 70ch;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(8, 18, 28, 0.66);
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .metric {
+      padding: 18px;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(8, 18, 28, 0.94), rgba(6, 14, 22, 0.88));
+      border: 1px solid var(--line);
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric .value {
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .metric .sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 18px;
+      margin-top: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 16px;
+      font-size: 16px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #dbeafe;
+    }
+
+    .controls {
+      display: grid;
+      gap: 18px;
+    }
+
+    .control-block {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(9, 19, 30, 0.72);
+    }
+
+    .control-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .control-top span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(10, 24, 38, 0.9);
+      color: var(--text);
+      padding: 12px 14px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(94, 234, 212, 0.32);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(94, 234, 212, 0.16));
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    button.danger {
+      background: linear-gradient(135deg, rgba(251, 113, 133, 0.24), rgba(244, 63, 94, 0.14));
+      border-color: rgba(251, 113, 133, 0.32);
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0 0;
+    }
+
+    .switch {
+      position: relative;
+      width: 58px;
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.9);
+      transition: background 120ms ease;
+      flex: 0 0 auto;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #dbeafe;
+      transition: transform 160ms ease, background 120ms ease;
+    }
+
+    .switch.active {
+      background: rgba(52, 211, 153, 0.22);
+      border-color: rgba(52, 211, 153, 0.36);
+    }
+
+    .switch.active::after {
+      transform: translateX(24px);
+      background: #ecfeff;
+    }
+
+    .stream-shell {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stream-alert {
+      background: rgba(251, 113, 133, 0.15);
+      border: 1px solid rgba(251, 113, 133, 0.35);
+      color: #ffe6ea;
+      padding: 14px 18px;
+      border-radius: 14px;
+      margin-bottom: 0;
+      font-weight: 600;
+      display: none;
+    }
+
+    .stream-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stream-header .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+      70% { box-shadow: 0 0 0 14px rgba(52, 211, 153, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+    }
+
+    .transaction-list {
+      display: grid;
+      gap: 12px;
+      max-height: 660px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .card {
+      display: grid;
+      grid-template-columns: 1.2fr 0.7fr 0.55fr 0.6fr;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(8, 18, 28, 0.82);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.7), rgba(94, 234, 212, 0.35));
+      opacity: 0.35;
+    }
+
+    .card.flagged {
+      border-color: rgba(251, 113, 133, 0.42);
+      background: linear-gradient(180deg, rgba(40, 13, 18, 0.92), rgba(22, 8, 12, 0.96));
+      box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.08);
+    }
+
+    .card.flagged::before {
+      background: linear-gradient(180deg, rgba(251, 113, 133, 0.85), rgba(244, 63, 94, 0.35));
+      opacity: 0.9;
+    }
+
+    .card.rejected {
+      opacity: 0.38;
+      filter: grayscale(0.2);
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .merchant {
+      font-weight: 700;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .amount, .score, .decision {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .amount {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .score strong {
+      display: block;
+      font-size: 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      justify-self: end;
+    }
+
+    .badge.flagged {
+      color: #fecdd3;
+      border-color: rgba(251, 113, 133, 0.35);
+      background: rgba(251, 113, 133, 0.12);
+    }
+
+    .badge.allowed {
+      color: #bbf7d0;
+      border-color: rgba(52, 211, 153, 0.32);
+      background: rgba(52, 211, 153, 0.12);
+    }
+
+    .notice {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      background: rgba(8, 18, 28, 0.7);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .hero, .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .app {
+        padding: 16px 12px 24px;
+      }
+
+      .headline, .panel {
+        border-radius: 20px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        grid-template-columns: 1fr 1fr;
+        row-gap: 10px;
+      }
+
+      .amount, .score, .decision {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <div class="headline">
+        <div class="eyebrow">Realtime Fraud Operations Center</div>
+        <h1>Watch fraud scores move through the stream.</h1>
+        <p>
+          Tune the sensitivity threshold, inject a burst of suspicious transactions, and watch the pipeline decide what gets flagged.
+          The simulator mirrors the core controls of a real-time fraud stack: online scoring, hot feature lookups, shadow-style comparison, and fast rejection.
+        </p>
+        <div class="pill-row">
+          <div class="pill">Sub-100ms decision target</div>
+          <div class="pill">Cold-start fallback scoring</div>
+          <div class="pill">Shadow deployment logging</div>
+          <div class="pill">Kafka + Spark Streaming</div>
+          <div class="pill">FastAPI + Redis + Kubernetes</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="metric">
+          <div class="label">Total Transactions Processed</div>
+          <div class="value" id="totalCount">0</div>
+          <div class="sub">Live stream plus attack bursts</div>
+        </div>
+        <div class="metric">
+          <div class="label">Flagged Transactions</div>
+          <div class="value" id="flaggedCount">0</div>
+          <div class="sub">Scores above threshold</div>
+        </div>
+        <div class="metric">
+          <div class="label">False Positive Estimate</div>
+          <div class="value" id="falsePositive">0.0%</div>
+          <div class="sub">Lower at higher thresholds</div>
+        </div>
+        <div class="metric">
+          <div class="label">Shadow Divergence</div>
+          <div class="value" id="shadowDivergence">0.0%</div>
+          <div class="sub">New model vs current model</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+      <h2>Fraud Types in Scope</h2>
+      <div class="stats-grid" id="fraudTypeGrid"></div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+      <div class="stream-header">
+        <h2 style="margin: 0;">Reference Architecture</h2>
+        <div class="status"><span class="dot"></span> Live stack overview from FastAPI when available</div>
+      </div>
+      <div class="stats-grid" id="stackGrid" style="margin-top: 16px;"></div>
+    </section>
+
+    <section class="dashboard">
+      <aside class="panel controls">
+        <h2>Controls</h2>
+
+        <div class="control-block">
+          <div class="control-top">
+            <strong>Sensitivity Threshold</strong>
+            <span><span id="thresholdValue">80</span> / 100</span>
+          </div>
+          <input id="thresholdSlider" type="range" min="0" max="100" value="80" />
+          <div class="footer-note">Flagged when fraud score is above the threshold.</div>
+        </div>
+
+        <div class="control-block">
+          <div class="btn-row">
+            <button class="primary" id="injectAttack">Inject Fraud Attack</button>
+            <button class="danger" id="clearStream">Clear Stream</button>
+          </div>
+          <div class="footer-note">Attack burst lasts 5 seconds and generates high-score activity.</div>
+        </div>
+
+        <div class="control-block">
+          <div class="toggle-row">
+            <div>
+              <strong>Auto-Reject</strong>
+              <div class="footer-note" style="margin-top: 4px;">Remove flagged items from the stream immediately.</div>
+            </div>
+            <div class="switch" id="autoRejectSwitch" role="switch" aria-checked="false" tabindex="0"></div>
+          </div>
+        </div>
+
+        <div class="notice">
+          Cold-start logic is simulated by blending a conservative baseline score for new cards with no prior history. Shadow mode logs a parallel score to estimate model drift before deployment.
+        </div>
+      </aside>
+
+      <main class="panel stream-shell">
+        <div class="stream-header">
+          <h2 style="margin: 0;">Live Transaction Stream</h2>
+          <div class="status"><span class="dot"></span> Streaming every 2 seconds</div>
+        </div>
+
+        <div id="streamAlert" class="stream-alert" style="display:none;"></div>
+        <div class="transaction-list" id="transactionList"></div>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    const merchants = [
+      "Starbucks", "Target", "Electronics Store", "ATM Withdrawal", "Ride Share", "Grocery Market",
+      "Online Marketplace", "Pharmacy", "Hotel Booking", "Airline Ticket", "Gas Station", "Luxury Retail"
+    ];
+
+    const locations = [
+      "New York, US", "Austin, US", "Chicago, US", "San Francisco, US", "Miami, US", "Seattle, US",
+      "London, UK", "Toronto, CA", "Berlin, DE", "Singapore, SG"
+    ];
+
+    const cards = [
+      "Visa **** 4821", "Mastercard **** 1024", "Amex **** 9302", "Visa **** 7748", "Discover **** 6642", "Mastercard **** 5519"
+    ];
+
+    const fraudTypes = [
+      {
+        name: "Card-Not-Present",
+        signal: "Unusual merchant, amount, or billing pattern without a physical card swipe.",
+        cue: "Strong checkout velocity and address mismatch"
+      },
+      {
+        name: "Account Takeover",
+        signal: "Known user profile, but new device, region, or login fingerprint.",
+        cue: "Device change plus location jump"
+      },
+      {
+        name: "Synthetic Identity",
+        signal: "New profile with thin history that ramps quickly into high-value behavior.",
+        cue: "Thin-file users and abrupt spend growth"
+      },
+      {
+        name: "Refund Abuse",
+        signal: "Repeated returns, chargebacks, or reversal cycles across the same merchant.",
+        cue: "Repeated reversal attempts"
+      },
+      {
+        name: "Mule Transfer",
+        signal: "Rapid movement of funds to unusual destinations after an account compromise.",
+        cue: "Burst transfers with velocity spikes"
+      }
+    ];
+
+    const stackLayers = [
+      { name: "Kafka", role: "ingestion firehose", detail: "Buffers transaction events with burst tolerance." },
+      { name: "Spark Streaming", role: "feature engineering", detail: "Builds rolling and velocity features on the fly." },
+      { name: "FastAPI", role: "inference edge", detail: "Serves low-latency model scoring and control APIs." },
+      { name: "Redis", role: "hot feature store", detail: "Keeps recent activity for sub-millisecond lookups." },
+      { name: "Prometheus + Evidently", role: "observability", detail: "Tracks drift, latency, and model behavior changes." },
+      { name: "Docker + Kubernetes", role: "delivery plane", detail: "Packages and scales the system in production." }
+    ];
+
+    const state = {
+      threshold: 80,
+      autoReject: false,
+      total: 0,
+      flagged: 0,
+      shadowDivergence: 0,
+      history: new Map(),
+      transactions: [],
+      nextId: 1001,
+      attackUntil: 0,
+      attackInterval: null,
+      apiOverview: null
+    };
+
+    const els = {
+      thresholdSlider: document.getElementById("thresholdSlider"),
+      thresholdValue: document.getElementById("thresholdValue"),
+      autoRejectSwitch: document.getElementById("autoRejectSwitch"),
+      injectAttack: document.getElementById("injectAttack"),
+      clearStream: document.getElementById("clearStream"),
+      transactionList: document.getElementById("transactionList"),
+      totalCount: document.getElementById("totalCount"),
+      flaggedCount: document.getElementById("flaggedCount"),
+      falsePositive: document.getElementById("falsePositive"),
+      shadowDivergence: document.getElementById("shadowDivergence"),
+      fraudTypeGrid: document.getElementById("fraudTypeGrid"),
+      stackGrid: document.getElementById("stackGrid")
+    };
+
+    function randomItem(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function amountForMerchant(merchant) {
+      const buckets = {
+        "ATM Withdrawal": [40, 80, 120, 200, 320],
+        "Airline Ticket": [180, 260, 410, 650, 980],
+        "Hotel Booking": [120, 220, 310, 450, 760],
+        "Luxury Retail": [220, 340, 620, 950, 1450],
+        "Electronics Store": [90, 180, 260, 520, 899]
+      };
+
+      const pool = buckets[merchant] || [8, 14, 22, 35, 49, 68];
+      const base = randomItem(pool);
+      const spread = Math.max(2, Math.round(base * 0.16));
+      return +(base + (Math.random() * spread * 2 - spread)).toFixed(2);
+    }
+
+    function getHistory(cardId) {
+      return state.history.get(cardId) || { count: 0, lastLocation: null, lastAmount: 0 };
+    }
+
+    function scoreTransaction(tx) {
+      const history = getHistory(tx.card);
+      let score = 12 + Math.random() * 18;
+
+      if (tx.amount > 400) score += 22;
+      else if (tx.amount > 180) score += 12;
+      else if (tx.amount < 12) score += 5;
+
+      if (/ATM|Luxury|Airline|Hotel/.test(tx.merchant)) score += 10;
+
+      if (history.count === 0) score += 14;
+      else if (history.count < 3) score += 8;
+
+      if (history.lastLocation && history.lastLocation !== tx.location) score += 18;
+      if (history.lastAmount > 0 && Math.abs(tx.amount - history.lastAmount) > 250) score += 12;
+
+      if (state.attackUntil > Date.now()) score = 90 + Math.random() * 10;
+
+      const shadowScore = Math.max(0, Math.min(100, score + (Math.random() * 14 - 7)));
+      state.shadowDivergence = Math.abs(shadowScore - score);
+
+      return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    function formatTransactionTime(date) {
+      return new Intl.DateTimeFormat(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      }).format(date);
+    }
+
+    function createTransaction(forceFraud = false) {
+      const merchant = forceFraud ? randomItem(["Online Marketplace", "Luxury Retail", "Airline Ticket", "Hotel Booking", "Electronics Store"]) : randomItem(merchants);
+      const card = randomItem(cards);
+      const location = randomItem(locations);
+      const amount = amountForMerchant(merchant);
+      const baseAmount = forceFraud ? amount * (1.4 + Math.random() * 1.4) : amount;
+      const tx = {
+        id: `TX-${state.nextId++}`,
+        merchant,
+        amount: +baseAmount.toFixed(2),
+        location,
+        card,
+        timestamp: new Date()
+      };
+
+      const score = scoreTransaction(tx);
+      const flagged = score > state.threshold;
+      const shadowScore = Math.max(0, Math.min(100, score + Math.round(Math.random() * 12 - 6)));
+
+      const record = {
+        ...tx,
+        score,
+        shadowScore,
+        flagged,
+        rejected: flagged && state.autoReject
+      };
+
+      state.total += 1;
+      if (flagged) state.flagged += 1;
+
+      const history = getHistory(card);
+      state.history.set(card, {
+        count: history.count + 1,
+        lastLocation: location,
+        lastAmount: record.amount
+      });
+
+      state.transactions.unshift(record);
+      if (state.autoReject && flagged) {
+        state.transactions = state.transactions.filter((item) => !item.flagged);
+      }
+
+      state.transactions = state.transactions.slice(0, 20);
+      render();
+    }
+
+    function falsePositiveEstimate() {
+      const thresholdEffect = Math.max(0, 100 - state.threshold);
+      const volumeEffect = Math.min(20, state.total / 2);
+      return Math.max(0.8, (thresholdEffect * 0.32 + volumeEffect) / 2);
+    }
+
+    function render() {
+      els.totalCount.textContent = state.total.toLocaleString();
+      els.flaggedCount.textContent = state.flagged.toLocaleString();
+      els.falsePositive.textContent = `${falsePositiveEstimate().toFixed(1)}%`;
+      els.shadowDivergence.textContent = `${state.shadowDivergence.toFixed(1)}%`;
+      els.thresholdValue.textContent = state.threshold;
+      els.autoRejectSwitch.classList.toggle("active", state.autoReject);
+      els.autoRejectSwitch.setAttribute("aria-checked", String(state.autoReject));
+
+      els.transactionList.innerHTML = state.transactions.map((tx) => {
+        const decision = tx.flagged ? "Flagged" : "Approved";
+        const badgeClass = tx.flagged ? "flagged" : "allowed";
+        const amountColor = tx.flagged ? "var(--danger)" : "var(--text)";
+        const rejectLabel = tx.rejected ? "Rejected" : decision;
+
+        return `
+          <article class="card ${tx.flagged ? 'flagged' : ''} ${tx.rejected ? 'rejected' : ''}">
+            <div class="title">
+              <div class="merchant">${tx.merchant}</div>
+              <div class="meta">${tx.id} · ${tx.card} · ${tx.location}</div>
+              <div class="meta">${formatTransactionTime(tx.timestamp)}</div>
+            </div>
+            <div class="amount" style="color:${amountColor}">₹${tx.amount.toFixed(2)}</div>
+            <div class="score"><strong>${tx.score}</strong><span class="meta">Fraud Score</span></div>
+            <div class="decision">
+              <div class="badge ${badgeClass}">${rejectLabel}</div>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      if (els.fraudTypeGrid) {
+        els.fraudTypeGrid.innerHTML = fraudTypes.map((item) => `
+          <div class="metric">
+            <div class="label">${item.name}</div>
+            <div class="sub" style="margin-top: 8px;">${item.signal}</div>
+            <div class="sub" style="margin-top: 12px; color: var(--accent);">${item.cue}</div>
+          </div>
+        `).join("");
+      }
+
+      if (els.stackGrid) {
+        const source = state.apiOverview?.stack ? state.apiOverview.stack : stackLayers;
+        els.stackGrid.innerHTML = source.map((item) => `
+          <div class="metric">
+            <div class="label">${item.name}</div>
+            <div class="sub" style="margin-top: 8px;">${item.role || item.stage || ""}</div>
+            <div class="sub" style="margin-top: 12px; color: var(--accent);">${item.detail || item.description || ""}</div>
+          </div>
+        `).join("");
+      }
+    }
+
+    function startAttackBurst() {
+      state.attackUntil = Date.now() + 5000;
+      if (state.attackInterval) clearInterval(state.attackInterval);
+
+      createTransaction(true);
+      state.attackInterval = setInterval(() => {
+        if (Date.now() > state.attackUntil) {
+          clearInterval(state.attackInterval);
+          state.attackInterval = null;
+          return;
+        }
+        createTransaction(true);
+      }, 500);
+    }
+
+    function seedStream() {
+      for (let i = 0; i < 5; i += 1) {
+        createTransaction(false);
+      }
+    }
+
+    els.thresholdSlider.addEventListener("input", (event) => {
+      state.threshold = Number(event.target.value);
+      render();
+    });
+
+    els.autoRejectSwitch.addEventListener("click", () => {
+      state.autoReject = !state.autoReject;
+      render();
+    });
+
+    els.autoRejectSwitch.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        state.autoReject = !state.autoReject;
+        render();
+      }
+    });
+
+    els.injectAttack.addEventListener("click", startAttackBurst);
+
+    els.clearStream.addEventListener("click", () => {
+      state.transactions = [];
+      state.flagged = 0;
+      state.total = 0;
+      state.shadowDivergence = 0;
+      state.history.clear();
+      render();
+    });
+
+    seedStream();
+    render();
+
+    fetch("/api/overview")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("overview unavailable")))
+      .then((payload) => {
+        state.apiOverview = payload;
+        render();
+      })
+      .catch(() => {
+        state.apiOverview = null;
+        render();
+      });
+
+    setInterval(() => {
+      if (state.attackUntil > Date.now()) return;
+      createTransaction(false);
+    }, 2000);
+  </script>
+</body>
+</html>

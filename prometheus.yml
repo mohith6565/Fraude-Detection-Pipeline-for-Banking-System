@@ -1,0 +1,49 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'fraud-detection-monitor'
+
+# Alerting config (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them (optional)
+rule_files: []
+
+scrape_configs:
+  # Main FastAPI Application
+  - job_name: 'fraud-detection-app'
+    static_configs:
+      - targets: ['app:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  # ML Model Service
+  - job_name: 'ml-service'
+    static_configs:
+      - targets: ['ml-service:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  # PostgreSQL (if using postgres_exporter)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres_exporter:9187']
+
+  # Redis Exporter (optional - requires redis_exporter container)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis_exporter:9121']
+
+  # Kafka Metrics (JMX - if configured)
+  # - job_name: 'kafka'
+  #   static_configs:
+  #     - targets: ['kafka:9101']
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

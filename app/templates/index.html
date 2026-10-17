@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page_title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/static/site.css" />
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <div class="headline">
+        <div class="eyebrow">Realtime Fraud Operations Center</div>
+        <h1>Watch fraud scores move through the stream.</h1>
+        <p>
+          Tune the sensitivity threshold, inject a burst of suspicious transactions, and watch the pipeline decide what gets flagged.
+          The simulator mirrors the core controls of a real-time fraud stack: online scoring, hot feature lookups, shadow-style comparison, and fast rejection.
+        </p>
+        <div class="pill-row">
+          <div class="pill">Sub-100ms decision target</div>
+          <div class="pill">Cold-start fallback scoring</div>
+          <div class="pill">Shadow deployment logging</div>
+          <div class="pill">Kafka + Spark Streaming</div>
+          <div class="pill">FastAPI + Redis + Kubernetes</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="metric">
+          <div class="label">Total Transactions Processed</div>
+          <div class="value" id="totalCount">0</div>
+          <div class="sub">Live stream plus attack bursts</div>
+        </div>
+        <div class="metric">
+          <div class="label">Flagged Transactions</div>
+          <div class="value" id="flaggedCount">0</div>
+          <div class="sub">Scores above threshold</div>
+        </div>
+        <div class="metric">
+          <div class="label">False Positive Estimate</div>
+          <div class="value" id="falsePositive">0.0%</div>
+          <div class="sub">Lower at higher thresholds</div>
+        </div>
+        <div class="metric">
+          <div class="label">Shadow Divergence</div>
+          <div class="value" id="shadowDivergence">0.0%</div>
+          <div class="sub">New model vs current model</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel section-gap">
+      <h2>Fraud Types in Scope</h2>
+      <div class="stats-grid" id="fraudTypeGrid"></div>
+    </section>
+
+    <section class="panel section-gap">
+      <div class="stream-header">
+        <h2 style="margin: 0;">Reference Architecture</h2>
+        <div class="status"><span class="dot"></span> Live stack overview from FastAPI when available</div>
+      </div>
+      <div class="stats-grid" id="stackGrid" style="margin-top: 16px;"></div>
+    </section>
+
+    <section class="dashboard">
+      <aside class="panel controls">
+        <h2>Controls</h2>
+
+        <div class="control-block">
+          <div class="control-top">
+            <strong>Sensitivity Threshold</strong>
+            <span><span id="thresholdValue">80</span> / 100</span>
+          </div>
+          <input id="thresholdSlider" type="range" min="0" max="100" value="80" />
+          <div class="footer-note">Flagged when fraud score is above the threshold.</div>
+        </div>
+
+        <div class="control-block">
+          <div class="btn-row">
+            <button class="primary" id="injectAttack">Inject Fraud Attack</button>
+            <button class="danger" id="clearStream">Clear Stream</button>
+          </div>
+          <div class="footer-note">Attack burst lasts 5 seconds and generates high-score activity.</div>
+        </div>
+
+        <div class="control-block">
+          <div class="toggle-row">
+            <div>
+              <strong>Auto-Reject</strong>
+              <div class="footer-note" style="margin-top: 4px;">Remove flagged items from the stream immediately.</div>
+            </div>
+            <div class="switch" id="autoRejectSwitch" role="switch" aria-checked="false" tabindex="0"></div>
+          </div>
+        </div>
+
+        <div class="notice">
+          Cold-start logic is simulated by blending a conservative baseline score for new cards with no prior history. Shadow mode logs a parallel score to estimate model drift before deployment.
+        </div>
+      </aside>
+
+      <main class="panel stream-shell">
+        <div class="stream-header">
+          <h2 style="margin: 0;">Live Transaction Stream</h2>
+          <div class="status"><span class="dot"></span> Streaming every 2 seconds</div>
+        </div>
+
+        <div id="streamAlert" class="stream-alert" style="display:none;"></div>
+        <div class="transaction-list" id="transactionList"></div>
+      </main>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

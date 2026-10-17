@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-atlas-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fraud-atlas-web
+  template:
+    metadata:
+      labels:
+        app: fraud-atlas-web
+    spec:
+      containers:
+        - name: web
+          image: fraud-atlas-web:latest
+          ports:
+            - containerPort: 8000
